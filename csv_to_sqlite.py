@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
 csv_to_sqlite.py
-
-Converts a CSV file into a SQLite3 database table.
+Converts a CSV with a header row into a SQLite3 table named after the CSV filename.
 Usage:
-    python3 csv_to_sqlite.py data.db input.csv
+  python3 csv_to_sqlite.py data.db input.csv
 
 Notes:
-- Expects the first row of the CSV to contain valid SQL column names (no spaces/quotes).
-- Creates a new table with the same name as the CSV filename (without extension).
-- Appends table to the DB if it already exists.
-- Code authored with assistance from Generative AI (ChatGPT).
+- Expects header names to already be valid SQL identifiers (per assignment).
+- All columns are stored as TEXT to keep it simple/portable.
+- Code authored with assistance from Generative AI (ChatGPT). I reviewed and tested the code.
 """
 
 import sys
@@ -19,26 +17,20 @@ import csv
 import os
 
 def csv_to_sqlite(db_name, csv_file):
-    # Derive table name from CSV filename (no extension, lowercased)
     table_name = os.path.splitext(os.path.basename(csv_file))[0]
 
-    # Open connection
     conn = sqlite3.connect(db_name)
     cur = conn.cursor()
 
     with open(csv_file, newline='', encoding='utf-8') as f:
         reader = csv.reader(f)
-        headers = next(reader)  # first row is header
+        headers = next(reader)
 
-        # Create table with TEXT columns
-        columns = ", ".join([f"{h} TEXT" for h in headers])
-        create_stmt = f"CREATE TABLE IF NOT EXISTS {table_name} ({columns});"
-        cur.execute(create_stmt)
+        cols = ", ".join([f"{h} TEXT" for h in headers])
+        cur.execute(f"CREATE TABLE IF NOT EXISTS {table_name} ({cols});")
 
-        # Insert rows
         placeholders = ", ".join(["?"] * len(headers))
-        insert_stmt = f"INSERT INTO {table_name} VALUES ({placeholders})"
-        cur.executemany(insert_stmt, reader)
+        cur.executemany(f"INSERT INTO {table_name} VALUES ({placeholders})", reader)
 
     conn.commit()
     conn.close()
